@@ -310,9 +310,9 @@ const PRODUCTS = {
     { name: 'その他', price: 0, sub: 0 }
   ],
   'レディース': [
-    { name: 'NUシークレット', price: 132000, sub: 11000 },
-    { name: 'NUタイニー', price: 143000, sub: 12000 },
-    { name: 'NUタイニー＋', price: 154000, sub: 13000 }
+    { name: 'NUシークレット', price: 132000, sub: 11000, cost: 38500 },
+    { name: 'NUタイニー', price: 143000, sub: 12000, cost: 44000 },
+    { name: 'NUタイニー＋', price: 154000, sub: 13000, cost: 49500 }
   ]
 };
 
@@ -361,12 +361,25 @@ function updatePrice() {
   const cat = document.getElementById('category').value;
   const name = document.getElementById('product').value;
   const p = (PRODUCTS[cat] || []).find(x => x.name === name);
+  const costEl = document.getElementById('cost');
   if (p && p.name !== 'その他') {
     document.getElementById('price').value = p.price;
     document.getElementById('subPrice').value = p.sub || '';
+    if (p.cost) {
+      costEl.value = p.cost;
+      costEl.readOnly = true;
+      costEl.style.opacity = '0.7';
+    } else {
+      costEl.value = '';
+      costEl.readOnly = false;
+      costEl.style.opacity = '1';
+    }
   } else {
     document.getElementById('price').value = '';
     document.getElementById('subPrice').value = '';
+    costEl.value = '';
+    costEl.readOnly = false;
+    costEl.style.opacity = '1';
   }
 }
 
