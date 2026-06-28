@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NU売上管理">
+<meta name="theme-color" content="#8b5cf6">
+<link rel="manifest" href="nu-manifest.json">
+<link rel="apple-touch-icon" href="nu-icon-192.png">
+<title>NU 売上管理</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8fafc;--bg-card:#ffffff;--bg-header:#ffffff;--bg-input:#f1f5f9;
+  --text:#0f172a;--text2:#64748b;--text3:#94a3b8;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --blue:#3b82f6;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--pink:#ec4899;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 24px rgba(0,0,0,.04);
+  --font:'Segoe UI','Hiragino Sans',sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#0f172a;--bg-card:#1e293b;--bg-header:#1e293b;--bg-input:#334155;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#475569;
+  --border:#334155;--border2:#475569;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 24px rgba(0,0,0,.2);
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;transition:background .3s,color .3s}
+
+.header{background:var(--bg-header);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,var(--purple),var(--pink));border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
+.header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.header-right{display:flex;align-items:center;gap:10px}
+.theme-toggle{width:44px;height:24px;border-radius:12px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .3s}
+.theme-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+[data-theme="dark"] .theme-toggle{background:var(--purple)}
+[data-theme="dark"] .theme-toggle::after{transform:translateX(20px)}
+
+.main{max-width:1280px;margin:0 auto;padding:20px 28px 60px}
+
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg-card);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow);width:fit-content}
+.tab{padding:8px 20px;border-radius:10px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.tab.active{background:var(--purple);color:#fff}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.kpi{background:var(--bg-card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border-left:4px solid var(--blue);transition:transform .2s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi-label{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:6px}
+.kpi-val{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.kpi:nth-child(1){border-left-color:var(--blue)}
+.kpi:nth-child(2){border-left-color:var(--pink)}
+.kpi:nth-child(3){border-left-color:var(--purple)}
+.kpi:nth-child(4){border-left-color:var(--orange)}
+.kpi:nth-child(5){border-left-color:var(--green)}
+.kpi:nth-child(6){border-left-color:var(--red)}
+.kpi:nth-child(7){border-left-color:var(--text2)}
+
+.section{display:none}
+.section.active{display:block}
+
+.card{background:var(--bg-card);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:20px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;font-weight:600;color:var(--text2)}
+.form-group input,.form-group select{padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:14px;transition:border .2s}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--purple)}
+
+.btn{padding:10px 24px;border-radius:var(--radius-sm);border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--purple);color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple)}
+.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);padding:5px 12px;font-size:12px}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+.form-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:var(--bg-input);color:var(--text2);font-weight:600;font-size:12px;white-space:nowrap;border-bottom:2px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:hover td{background:rgba(139,92,246,.03)}
+
+.filter-bar{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.filter-bar select,.filter-bar input{padding:7px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:13px}
+
+.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-mens{background:rgba(59,130,246,.1);color:var(--blue)}
+.badge-ladies{background:rgba(236,72,153,.1);color:var(--pink)}
+.badge-active{background:rgba(16,185,129,.1);color:var(--green)}
+.badge-expired{background:rgba(239,68,68,.1);color:var(--red)}
+
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:14px}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:300;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr}
+  .header{padding:10px 14px}
+  .header h1{font-size:15px}
+  .logo{width:30px;height:30px;font-size:11px}
+  .main{padding:12px}
+  .tabs{width:100%;overflow-x:auto;gap:2px;padding:3px}
+  .tab{padding:7px 14px;font-size:12px;white-space:nowrap}
+  .card{padding:16px;border-radius:12px}
+  .kpi{padding:14px}
+  .kpi-val{font-size:20px}
+  .kpi-label{font-size:11px}
+  table{font-size:12px}
+  th,td{padding:8px 6px}
+  .filter-bar{flex-direction:column;gap:8px}
+  .filter-bar select,.filter-bar input{width:100%}
+  .form-actions{flex-direction:column}
+  .form-actions .btn{width:100%;justify-content:center}
+  .btn-sm{padding:6px 10px}
+  .header-right{gap:6px}
+  .header-right .btn{padding:6px 10px;font-size:11px}
+  .theme-toggle{width:38px;height:22px}
+  .theme-toggle::after{width:18px;height:18px}
+  [data-theme="dark"] .theme-toggle::after{transform:translateX(16px)}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">NU</div>
+    <h1>NU 売上管理</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV出力</button>
+    <button class="theme-toggle" onclick="toggleTheme()"></button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">📊 ダッシュボード</button>
+    <button class="tab" onclick="showTab('register')">➕ 売上登録</button>
+    <button class="tab" onclick="showTab('sales')">📋 売上一覧</button>
+    <button class="tab" onclick="showTab('subscriptions')">🔄 サブスク管理</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="sec-dashboard" class="section active">
+    <div class="filter-bar">
+      <select id="dashYear" onchange="renderKPI()"></select>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </div>
+
+  <!-- Register -->
+  <div id="sec-register" class="section">
+    <div class="card">
+      <h2>売上登録</h2>
+      <form id="salesForm" onsubmit="return saveSale(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>販売日</label>
+            <input type="date" id="saleDate" required>
+          </div>
+          <div class="form-group">
+            <label>顧客名</label>
+            <input type="text" id="customerName" placeholder="顧客名">
+          </div>
+          <div class="form-group">
+            <label>カテゴリ</label>
+            <select id="category" onchange="updateProducts()" required>
+              <option value="">選択してください</option>
+              <option value="メンズ">メンズ</option>
+              <option value="レディース">レディース</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>商品</label>
+            <select id="product" onchange="updatePrice()" required>
+              <option value="">先にカテゴリを選択</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>販売価格（税込）</label>
+            <input type="number" id="price" required>
+          </div>
+          <div class="form-group">
+            <label>仕入れ値</label>
+            <input type="number" id="cost" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>オプション内容</label>
+            <input type="text" id="optionName" placeholder="例：増毛、カット等">
+          </div>
+          <div class="form-group">
+            <label>オプション金額</label>
+            <input type="number" id="optionPrice" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>値引き</label>
+            <input type="number" id="discount" placeholder="0">
+          </div>
+
+          <div class="form-group full" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+            <label style="font-size:13px;font-weight:700;color:var(--purple)">購入タイプ</label>
+            <div style="display:flex;gap:12px;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;cursor:pointer;color:var(--text)">
+                <input type="radio" name="purchaseType" value="一括" checked onchange="toggleSubFields()"> 一括購入
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;cursor:pointer;color:var(--text)">
+                <input type="radio" name="purchaseType" value="サブスク" onchange="toggleSubFields()"> サブスク
+              </label>
+            </div>
+          </div>
+          <div id="subFields" class="form-group full" style="display:none">
+            <div class="form-grid">
+          <div class="form-group">
+            <label>サブスク月額</label>
+            <input type="number" id="subPrice" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>契約年数</label>
+            <select id="subYears" onchange="calcSubEnd()">
+              <option value="1">1年</option>
+              <option value="2">2年</option>
+              <option value="3">3年</option>
+              <option value="4">4年</option>
+              <option value="5">5年</option>
+              <option value="6">6年</option>
+              <option value="7">7年</option>
+              <option value="8">8年</option>
+              <option value="9">9年</option>
+              <option value="10">10年</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>契約開始日</label>
+            <input type="date" id="subStart" onchange="calcSubEnd()">
+          </div>
+          <div class="form-group">
+            <label>契約終了月</label>
+            <input type="month" id="subEnd" readonly>
+          </div>
+          <div class="form-group">
+            <label>引き落とし日（毎月）</label>
+            <input type="text" id="subDay" readonly placeholder="契約日と同日">
+          </div>
+          <div class="form-group">
+            <label>入金額（初回）</label>
+            <input type="number" id="subPayment" placeholder="0">
+          </div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="editId" value="">
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onclick="resetForm()">クリア</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">登録</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sales List -->
+  <div id="sec-sales" class="section">
+    <div class="card">
+      <h2>売上一覧</h2>
+      <div class="filter-bar">
+        <select id="filterCat" onchange="renderSales()">
+          <option value="">全カテゴリ</option>
+          <option value="メンズ">メンズ</option>
+          <option value="レディース">レディース</option>
+        </select>
+        <input type="month" id="filterMonth" onchange="renderSales()">
+      </div>
+      <div class="table-wrap" id="salesTable"></div>
+    </div>
+  </div>
+
+  <!-- Subscriptions -->
+  <div id="sec-subscriptions" class="section">
+    <div class="card">
+      <h2>🔄 サブスク契約一覧</h2>
+      <div class="filter-bar">
+        <select id="subFilter" onchange="renderSubs()">
+          <option value="active">アクティブのみ</option>
+          <option value="all">すべて</option>
+          <option value="expired">期限切れ</option>
+        </select>
+      </div>
+      <div class="table-wrap" id="subTable"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PRODUCTS = {
+  'メンズ': [
+    { name: 'NUプレミアム', price: 198000, sub: 16500 },
+    { name: 'NUスタンダード', price: 143000, sub: 0 },
+    { name: 'その他', price: 0, sub: 0 }
+  ],
+  'レディース': [
+    { name: 'NUシークレット', price: 132000, sub: 11000 },
+    { name: 'NUタイニー', price: 143000, sub: 12000 },
+    { name: 'NUタイニー＋', price: 154000, sub: 13000 }
+  ]
+};
+
+const KEY = 'nu_sales_data';
+let sales = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+function save() { localStorage.setItem(KEY, JSON.stringify(sales)); }
+
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'dashboard') renderKPI();
+  if (id === 'sales') renderSales();
+  if (id === 'subscriptions') renderSubs();
+}
+
+function toggleTheme() {
+  const d = document.documentElement;
+  d.setAttribute('data-theme', d.getAttribute('data-theme') === 'dark' ? '' : 'dark');
+  localStorage.setItem('nu_theme', d.getAttribute('data-theme'));
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function updateProducts() {
+  const cat = document.getElementById('category').value;
+  const sel = document.getElementById('product');
+  sel.innerHTML = '<option value="">選択してください</option>';
+  if (PRODUCTS[cat]) {
+    PRODUCTS[cat].forEach(p => {
+      sel.innerHTML += `<option value="${p.name}">${p.name}（¥${p.price.toLocaleString()}）</option>`;
+    });
+  }
+  document.getElementById('price').value = '';
+  document.getElementById('subPrice').value = '';
+}
+
+function updatePrice() {
+  const cat = document.getElementById('category').value;
+  const name = document.getElementById('product').value;
+  const p = (PRODUCTS[cat] || []).find(x => x.name === name);
+  if (p && p.name !== 'その他') {
+    document.getElementById('price').value = p.price;
+    document.getElementById('subPrice').value = p.sub || '';
+  } else {
+    document.getElementById('price').value = '';
+    document.getElementById('subPrice').value = '';
+  }
+}
+
+function toggleSubFields() {
+  const isSub = document.querySelector('input[name="purchaseType"][value="サブスク"]').checked;
+  document.getElementById('subFields').style.display = isSub ? 'block' : 'none';
+  if (!isSub) {
+    document.getElementById('subPrice').value = '';
+    document.getElementById('subStart').value = '';
+    document.getElementById('subEnd').value = '';
+    document.getElementById('subDay').value = '';
+    document.getElementById('subPayment').value = '';
+  }
+}
+
+function calcSubEnd() {
+  const start = document.getElementById('subStart').value;
+  if (!start) return;
+  const d = new Date(start);
+  const day = d.getDate();
+  document.getElementById('subDay').value = `毎月${day}日`;
+  const years = Number(document.getElementById('subYears').value) || 1;
+  d.setMonth(d.getMonth() + (years * 12));
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  document.getElementById('subEnd').value = `${y}-${m}`;
+}
+
+function saveSale(e) {
+  e.preventDefault();
+  const editId = document.getElementById('editId').value;
+  const purchaseType = document.querySelector('input[name="purchaseType"]:checked').value;
+  const entry = {
+    id: editId || Date.now().toString(),
+    purchaseType,
+    date: document.getElementById('saleDate').value,
+    customer: document.getElementById('customerName').value,
+    category: document.getElementById('category').value,
+    product: document.getElementById('product').value,
+    price: Number(document.getElementById('price').value) || 0,
+    cost: Number(document.getElementById('cost').value) || 0,
+    optionName: document.getElementById('optionName').value,
+    optionPrice: Number(document.getElementById('optionPrice').value) || 0,
+    discount: Number(document.getElementById('discount').value) || 0,
+    subPrice: Number(document.getElementById('subPrice').value) || 0,
+    subYears: Number(document.getElementById('subYears').value) || 1,
+    subStart: document.getElementById('subStart').value,
+    subEnd: document.getElementById('subEnd').value,
+    subDay: document.getElementById('subDay').value,
+    subPayment: Number(document.getElementById('subPayment').value) || 0
+  };
+  if (editId) {
+    const idx = sales.findIndex(s => s.id === editId);
+    if (idx >= 0) sales[idx] = entry;
+  } else {
+    sales.push(entry);
+  }
+  save();
+  resetForm();
+  toast(editId ? '更新しました' : '登録しました');
+}
+
+function resetForm() {
+  document.getElementById('salesForm').reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('submitBtn').textContent = '登録';
+  document.getElementById('subDay').value = '';
+  document.getElementById('subEnd').value = '';
+  document.getElementById('saleDate').value = new Date().toISOString().slice(0, 10);
+}
+
+function editSale(id) {
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  showTab('register');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  document.getElementById('editId').value = s.id;
+  const radio = document.querySelector(`input[name="purchaseType"][value="${s.purchaseType || '一括'}"]`);
+  if (radio) radio.checked = true;
+  toggleSubFields();
+  document.getElementById('saleDate').value = s.date;
+  document.getElementById('customerName').value = s.customer;
+  document.getElementById('category').value = s.category;
+  updateProducts();
+  document.getElementById('product').value = s.product;
+  document.getElementById('price').value = s.price;
+  document.getElementById('cost').value = s.cost;
+  document.getElementById('optionName').value = s.optionName;
+  document.getElementById('optionPrice').value = s.optionPrice;
+  document.getElementById('discount').value = s.discount || 0;
+  document.getElementById('subPrice').value = s.subPrice;
+  document.getElementById('subYears').value = s.subYears || 1;
+  document.getElementById('subStart').value = s.subStart;
+  document.getElementById('subEnd').value = s.subEnd;
+  document.getElementById('subDay').value = s.subDay;
+  document.getElementById('subPayment').value = s.subPayment;
+  document.getElementById('submitBtn').textContent = '更新';
+  document.getElementById('sec-register').classList.add('active');
+}
+
+function deleteSale(id) {
+  if (!confirm('この売上を削除しますか？')) return;
+  sales = sales.filter(s => s.id !== id);
+  save();
+  renderSales();
+  renderKPI();
+  toast('削除しました');
+}
+
+function yen(n) { return '¥' + Number(n).toLocaleString(); }
+
+function updateYearOptions() {
+  const sel = document.getElementById('dashYear');
+  const cur = sel.value;
+  const years = [...new Set(sales.map(s => s.date ? s.date.slice(0,4) : '').filter(Boolean))].sort().reverse();
+  const thisYear = new Date().getFullYear().toString();
+  if (!years.includes(thisYear)) years.unshift(thisYear);
+  sel.innerHTML = '<option value="">全期間</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
+  if (cur && years.includes(cur)) sel.value = cur;
+}
+
+function renderKPI() {
+  updateYearOptions();
+  const year = document.getElementById('dashYear').value;
+  const filtered = year ? sales.filter(s => s.date && s.date.startsWith(year)) : sales;
+  const mens = filtered.filter(s => s.category === 'メンズ');
+  const ladies = filtered.filter(s => s.category === 'レディース');
+  const total = s => s.reduce((a, x) => a + x.price + (x.optionPrice || 0) - (x.discount || 0), 0);
+  const totalCost = s => s.reduce((a, x) => a + (x.cost || 0), 0);
+  const allSales = total(filtered);
+  const allCost = totalCost(filtered);
+  const profit = allSales - allCost;
+  const rate = allSales > 0 ? ((profit / allSales) * 100).toFixed(1) : '0.0';
+
+  const kpis = [
+    { label: 'メンズ売上', val: yen(total(mens)), sub: `${mens.length}件` },
+    { label: 'レディース売上', val: yen(total(ladies)), sub: `${ladies.length}件` },
+    { label: '合計売上', val: yen(allSales), sub: `${filtered.length}件` },
+    { label: '仕入れ合計', val: yen(allCost) },
+    { label: '利益', val: yen(profit) },
+    { label: '利益率', val: rate + '%' },
+    { label: '販売個数', val: `${filtered.length}個`, sub: `♂${mens.length} ♀${ladies.length}` }
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}</div>
+      ${k.sub ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${k.sub}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderSales() {
+  const cat = document.getElementById('filterCat').value;
+  const month = document.getElementById('filterMonth').value;
+  let data = sales.slice().sort((a, b) => b.date.localeCompare(a.date));
+  if (cat) data = data.filter(s => s.category === cat);
+  if (month) data = data.filter(s => s.date && s.date.startsWith(month));
+
+  if (!data.length) {
+    document.getElementById('salesTable').innerHTML = '<div class="empty">データがありません</div>';
+    return;
+  }
+
+  document.getElementById('salesTable').innerHTML = `<table>
+    <thead><tr>
+      <th>日付</th><th>顧客</th><th>カテゴリ</th><th>商品</th><th>タイプ</th><th>価格</th><th>オプション</th><th>値引き</th><th>仕入れ</th><th>利益</th><th>サブスク</th><th>契約期間</th><th>引落日</th><th>入金額</th><th></th>
+    </tr></thead>
+    <tbody>${data.map(s => {
+      const profit = (s.price + (s.optionPrice||0) - (s.discount||0)) - (s.cost||0);
+      const catBadge = s.category === 'メンズ' ? 'badge-mens' : 'badge-ladies';
+      return `<tr>
+        <td>${s.date}</td>
+        <td>${s.customer || '-'}</td>
+        <td><span class="badge ${catBadge}">${s.category}</span></td>
+        <td>${s.product}</td>
+        <td>${s.purchaseType || '一括'}</td>
+        <td>${yen(s.price)}</td>
+        <td>${s.optionName ? `${s.optionName} ${yen(s.optionPrice)}` : '-'}</td>
+        <td>${s.discount ? yen(s.discount) : '-'}</td>
+        <td>${yen(s.cost)}</td>
+        <td>${yen(profit)}</td>
+        <td>${s.subPrice ? yen(s.subPrice) + '/月' : '-'}</td>
+        <td>${s.subStart ? `${s.subStart}〜${s.subEnd}` : '-'}</td>
+        <td>${s.subDay || '-'}</td>
+        <td>${s.subPayment ? yen(s.subPayment) : '-'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="editSale('${s.id}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">削除</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function renderSubs() {
+  const filter = document.getElementById('subFilter').value;
+  const today = new Date().toISOString().slice(0, 7);
+  let data = sales.filter(s => s.subPrice > 0 && s.subStart);
+  if (filter === 'active') data = data.filter(s => s.subEnd >= today);
+  if (filter === 'expired') data = data.filter(s => s.subEnd < today);
+  data.sort((a, b) => b.subStart.localeCompare(a.subStart));
+
+  if (!data.length) {
+    document.getElementById('subTable').innerHTML = '<div class="empty">サブスク契約がありません</div>';
+    return;
+  }
+
+  document.getElementById('subTable').innerHTML = `<table>
+    <thead><tr>
+      <th>顧客</th><th>カテゴリ</th><th>商品</th><th>月額</th><th>契約開始</th><th>契約終了</th><th>引落日</th><th>入金額</th><th>状態</th>
+    </tr></thead>
+    <tbody>${data.map(s => {
+      const active = s.subEnd >= today;
+      return `<tr>
+        <td>${s.customer || '-'}</td>
+        <td><span class="badge ${s.category === 'メンズ' ? 'badge-mens' : 'badge-ladies'}">${s.category}</span></td>
+        <td>${s.product}</td>
+        <td>${yen(s.subPrice)}</td>
+        <td>${s.subStart}</td>
+        <td>${s.subEnd}</td>
+        <td>${s.subDay}</td>
+        <td>${s.subPayment ? yen(s.subPayment) : '-'}</td>
+        <td><span class="badge ${active ? 'badge-active' : 'badge-expired'}">${active ? 'アクティブ' : '期限切れ'}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function exportCSV() {
+  if (!sales.length) { toast('データがありません'); return; }
+  const headers = ['日付','顧客','カテゴリ','商品','購入タイプ','価格','オプション','オプション金額','値引き','仕入れ','利益','サブスク月額','契約開始','契約終了','引落日','入金額'];
+  const rows = sales.map(s => [
+    s.date, s.customer, s.category, s.product, s.purchaseType||'一括', s.price, s.optionName, s.optionPrice, s.discount||0, s.cost,
+    (s.price + (s.optionPrice||0) - (s.discount||0)) - (s.cost||0),
+    s.subPrice, s.subStart, s.subEnd, s.subDay, s.subPayment
+  ]);
+  const bom = '﻿';
+  const csv = bom + [headers, ...rows].map(r => r.map(v => `"${v ?? ''}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `NU売上_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSVをダウンロードしました');
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./nu-sw.js');
+}
+
+// Init
+(function() {
+  const theme = localStorage.getItem('nu_theme');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('saleDate').value = new Date().toISOString().slice(0, 10);
+  renderKPI();
+})();
+</script>
+</body>
+</html>
