@@ -518,10 +518,26 @@ function renderKPI() {
   const profit = allSales - allCost;
   const rate = allSales > 0 ? ((profit / allSales) * 100).toFixed(1) : '0.0';
 
+  // サブスク入金：年を選択中ならその年分、全期間なら全サブスク月額合計
+  const subSales = sales.filter(s => s.subPrice > 0 && s.subStart);
+  let subIncome = 0;
+  if (year) {
+    subSales.forEach(s => {
+      const bd = calcSubYearlyBreakdown(s);
+      subIncome += bd[Number(year)] || 0;
+    });
+  } else {
+    subSales.forEach(s => {
+      const bd = calcSubYearlyBreakdown(s);
+      Object.values(bd).forEach(v => subIncome += v);
+    });
+  }
+
   const kpis = [
     { label: 'メンズ売上', val: yen(total(mens)), sub: `${mens.length}件` },
     { label: 'レディース売上', val: yen(total(ladies)), sub: `${ladies.length}件` },
     { label: '合計売上', val: yen(allSales), sub: `${filtered.length}件` },
+    { label: `サブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
     { label: '仕入れ合計', val: yen(allCost) },
     { label: '利益', val: yen(profit) },
     { label: '利益率', val: rate + '%' },
@@ -531,7 +547,7 @@ function renderKPI() {
   document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
     <div class="kpi">
       <div class="kpi-label">${k.label}</div>
-      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-val" ${k.color ? `style="color:${k.color}"` : ''}>${k.val}</div>
       ${k.sub ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${k.sub}</div>` : ''}
     </div>
   `).join('');
