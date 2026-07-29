@@ -578,9 +578,29 @@ function renderSales() {
   </table>`;
 }
 
+function calcSubYearlyBreakdown(s) {
+  if (!s.subStart || !s.subEnd || !s.subPrice) return {};
+  const price = Number(s.subPrice);
+  const start = new Date(s.subStart + '-01');
+  const endYM = s.subEnd; // e.g. "2027-06"
+  const endY = Number(endYM.slice(0,4));
+  const endM = Number(endYM.slice(5,7));
+  const end = new Date(endY, endM - 1, 1); // inclusive last month
+  const result = {};
+  let cur = new Date(start);
+  while (cur <= end) {
+    const y = cur.getFullYear();
+    result[y] = (result[y] || 0) + price;
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return result;
+}
+
 function renderSubs() {
   const filter = document.getElementById('subFilter').value;
   const today = new Date().toISOString().slice(0, 7);
+  const thisYear = new Date().getFullYear();
+  const nextYear = thisYear + 1;
   let data = sales.filter(s => s.subPrice > 0 && s.subStart);
   if (filter === 'active') data = data.filter(s => s.subEnd >= today);
   if (filter === 'expired') data = data.filter(s => s.subEnd < today);
@@ -591,24 +611,49 @@ function renderSubs() {
     return;
   }
 
-  document.getElementById('subTable').innerHTML = `<table>
+  // totals for summary
+  let totalThis = 0, totalNext = 0;
+  const rows = data.map(s => {
+    const active = s.subEnd >= today;
+    const breakdown = calcSubYearlyBreakdown(s);
+    const thisAmt = breakdown[thisYear] || 0;
+    const nextAmt = breakdown[nextYear] || 0;
+    totalThis += thisAmt;
+    totalNext += nextAmt;
+    const hasNext = nextAmt > 0;
+    return `<tr>
+      <td>${s.customer || '-'}</td>
+      <td><span class="badge ${s.category === 'メンズ' ? 'badge-mens' : 'badge-ladies'}">${s.category}</span></td>
+      <td>${s.product}</td>
+      <td>${yen(s.subPrice)}</td>
+      <td>${s.subStart}</td>
+      <td>${s.subEnd}</td>
+      <td>${s.subDay}</td>
+      <td style="color:var(--green);font-weight:600">${thisAmt ? yen(thisAmt) : '-'}</td>
+      <td style="color:var(--orange);font-weight:600">${hasNext ? yen(nextAmt) : '-'}</td>
+      <td><span class="badge ${active ? 'badge-active' : 'badge-expired'}">${active ? 'アクティブ' : '期限切れ'}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('subTable').innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="kpi" style="flex:1;min-width:160px;border-left-color:var(--green)">
+        <div class="kpi-label">${thisYear}年 サブスク入金合計</div>
+        <div class="kpi-val" style="font-size:20px;color:var(--green)">${yen(totalThis)}</div>
+      </div>
+      <div class="kpi" style="flex:1;min-width:160px;border-left-color:var(--orange)">
+        <div class="kpi-label">${nextYear}年 サブスク入金合計</div>
+        <div class="kpi-val" style="font-size:20px;color:var(--orange)">${yen(totalNext)}</div>
+      </div>
+    </div>
+    <table>
     <thead><tr>
-      <th>顧客</th><th>カテゴリ</th><th>商品</th><th>月額</th><th>契約開始</th><th>契約終了</th><th>引落日</th><th>入金額</th><th>状態</th>
+      <th>顧客</th><th>カテゴリ</th><th>商品</th><th>月額</th><th>契約開始</th><th>契約終了</th><th>引落日</th>
+      <th style="color:var(--green)">${thisYear}年入金</th>
+      <th style="color:var(--orange)">${nextYear}年入金</th>
+      <th>状態</th>
     </tr></thead>
-    <tbody>${data.map(s => {
-      const active = s.subEnd >= today;
-      return `<tr>
-        <td>${s.customer || '-'}</td>
-        <td><span class="badge ${s.category === 'メンズ' ? 'badge-mens' : 'badge-ladies'}">${s.category}</span></td>
-        <td>${s.product}</td>
-        <td>${yen(s.subPrice)}</td>
-        <td>${s.subStart}</td>
-        <td>${s.subEnd}</td>
-        <td>${s.subDay}</td>
-        <td>${s.subPayment ? yen(s.subPayment) : '-'}</td>
-        <td><span class="badge ${active ? 'badge-active' : 'badge-expired'}">${active ? 'アクティブ' : '期限切れ'}</span></td>
-      </tr>`;
-    }).join('')}</tbody>
+    <tbody>${rows}</tbody>
   </table>`;
 }
 
