@@ -599,7 +599,8 @@ function renderSales() {
 function calcSubYearlyBreakdown(s) {
   if (!s.subStart || !s.subEnd || !s.subPrice) return {};
   const price = Number(s.subPrice);
-  const start = new Date(s.subStart + '-01');
+  const startYM = s.subStart.slice(0, 7);
+  const start = new Date(startYM + '-01');
   const endYM = s.subEnd; // e.g. "2027-06"
   const endY = Number(endYM.slice(0,4));
   const endM = Number(endYM.slice(5,7));
