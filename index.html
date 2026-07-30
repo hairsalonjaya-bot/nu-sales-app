@@ -596,15 +596,11 @@ function renderSales() {
   </table>`;
 }
 
-function calcSubYearlyBreakdown(s) {
-  if (!s.subStart || !s.subEnd || !s.subPrice) return {};
-  const price = Number(s.subPrice);
-  const startYM = s.subStart.slice(0, 7);
-  const start = new Date(startYM + '-01');
-  const endYM = s.subEnd; // e.g. "2027-06"
-  const endY = Number(endYM.slice(0,4));
-  const endM = Number(endYM.slice(5,7));
-  const end = new Date(endY, endM - 1, 1); // inclusive last month
+function calcPeriodBreakdown(startDate, endYM, price) {
+  const start = new Date(startDate.slice(0, 7) + '-01');
+  const endY = Number(endYM.slice(0, 4));
+  const endM = Number(endYM.slice(5, 7));
+  const end = new Date(endY, endM - 1, 1);
   const result = {};
   let cur = new Date(start);
   while (cur <= end) {
@@ -613,6 +609,45 @@ function calcSubYearlyBreakdown(s) {
     cur.setMonth(cur.getMonth() + 1);
   }
   return result;
+}
+
+function calcSubYearlyBreakdown(s) {
+  if (!s.subStart || !s.subEnd || !s.subPrice) return {};
+  const price = Number(s.subPrice);
+  // 初回契約
+  const result = calcPeriodBreakdown(s.subStart, s.subEnd, price);
+  // 更新分
+  (s.renewals || []).forEach(r => {
+    const rd = calcPeriodBreakdown(r.start, r.end, price);
+    Object.entries(rd).forEach(([y, v]) => { result[y] = (result[y] || 0) + v; });
+  });
+  return result;
+}
+
+function renewSub(id) {
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  // 最後の契約終了月を取得
+  const lastEnd = (s.renewals && s.renewals.length)
+    ? s.renewals[s.renewals.length - 1].end
+    : s.subEnd;
+  // 翌月が新しい開始月
+  const [ey, em] = lastEnd.split('-').map(Number);
+  const newStartDate = new Date(ey, em, 1); // em は0-indexed ではないのでそのまま翌月
+  const newStartStr = newStartDate.getFullYear() + '-' +
+    String(newStartDate.getMonth() + 1).padStart(2, '0') + '-' +
+    String(newStartDate.getDate()).padStart(2, '0');
+  // +12ヶ月
+  const newEndDate = new Date(newStartDate);
+  newEndDate.setMonth(newEndDate.getMonth() + 12 - 1);
+  const newEndStr = newEndDate.getFullYear() + '-' +
+    String(newEndDate.getMonth() + 1).padStart(2, '0');
+  if (!s.renewals) s.renewals = [];
+  s.renewals.push({ start: newStartStr, end: newEndStr, renewedAt: new Date().toISOString().slice(0, 10) });
+  save();
+  renderSubs();
+  renderKPI();
+  toast(`${s.customer || s.product} の契約を更新しました（〜${newEndStr}）`);
 }
 
 function renderSubs() {
@@ -633,24 +668,30 @@ function renderSubs() {
   // totals for summary
   let totalThis = 0, totalNext = 0;
   const rows = data.map(s => {
-    const active = s.subEnd >= today;
+    // 更新含む最終終了月
+    const lastEnd = (s.renewals && s.renewals.length)
+      ? s.renewals[s.renewals.length - 1].end : s.subEnd;
+    const active = lastEnd >= today;
     const breakdown = calcSubYearlyBreakdown(s);
     const thisAmt = breakdown[thisYear] || 0;
     const nextAmt = breakdown[nextYear] || 0;
     totalThis += thisAmt;
     totalNext += nextAmt;
-    const hasNext = nextAmt > 0;
+    const renewCount = (s.renewals || []).length;
+    const renewHistory = renewCount
+      ? `<div style="font-size:11px;color:var(--text2);margin-top:3px">更新${renewCount}回 〜${lastEnd}</div>` : '';
     return `<tr>
       <td>${s.customer || '-'}</td>
       <td><span class="badge ${s.category === 'メンズ' ? 'badge-mens' : 'badge-ladies'}">${s.category}</span></td>
       <td>${s.product}</td>
       <td>${yen(s.subPrice)}</td>
       <td>${s.subStart}</td>
-      <td>${s.subEnd}</td>
+      <td>${s.subEnd}${renewHistory}</td>
       <td>${s.subDay}</td>
       <td style="color:var(--green);font-weight:600">${thisAmt ? yen(thisAmt) : '-'}</td>
-      <td style="color:var(--orange);font-weight:600">${hasNext ? yen(nextAmt) : '-'}</td>
+      <td style="color:var(--orange);font-weight:600">${nextAmt ? yen(nextAmt) : '-'}</td>
       <td><span class="badge ${active ? 'badge-active' : 'badge-expired'}">${active ? 'アクティブ' : '期限切れ'}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="renewSub('${s.id}')">更新</button></td>
     </tr>`;
   }).join('');
 
@@ -670,7 +711,7 @@ function renderSubs() {
       <th>顧客</th><th>カテゴリ</th><th>商品</th><th>月額</th><th>契約開始</th><th>契約終了</th><th>引落日</th>
       <th style="color:var(--green)">${thisYear}年入金</th>
       <th style="color:var(--orange)">${nextYear}年入金</th>
-      <th>状態</th>
+      <th>状態</th><th></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
