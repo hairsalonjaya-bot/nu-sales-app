@@ -498,9 +498,15 @@ function yen(n) { return '¥' + Number(n).toLocaleString(); }
 function updateYearOptions() {
   const sel = document.getElementById('dashYear');
   const cur = sel.value;
-  const years = [...new Set(sales.map(s => s.date ? s.date.slice(0,4) : '').filter(Boolean))].sort().reverse();
+  const yearSet = new Set(sales.map(s => s.date ? s.date.slice(0,4) : '').filter(Boolean));
+  // サブスク入金が発生する年もプルダウンに追加
+  sales.filter(s => s.subPrice > 0 && s.subStart).forEach(s => {
+    const bd = calcSubYearlyBreakdown(s);
+    Object.keys(bd).forEach(y => yearSet.add(y));
+  });
   const thisYear = new Date().getFullYear().toString();
-  if (!years.includes(thisYear)) years.unshift(thisYear);
+  yearSet.add(thisYear);
+  const years = [...yearSet].sort().reverse();
   sel.innerHTML = '<option value="">全期間</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
   if (cur && years.includes(cur)) sel.value = cur;
 }
