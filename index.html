@@ -524,29 +524,35 @@ function renderKPI() {
   const profit = allSales - allCost;
   const rate = allSales > 0 ? ((profit / allSales) * 100).toFixed(1) : '0.0';
 
-  // サブスク入金：年を選択中ならその年分、全期間なら全サブスク月額合計
+  // サブスク入金：カテゴリ別・年別に集計
   const subSales = sales.filter(s => s.subPrice > 0 && s.subStart);
-  let subIncome = 0;
-  if (year) {
-    subSales.forEach(s => {
-      const bd = calcSubYearlyBreakdown(s);
-      subIncome += bd[Number(year)] || 0;
-    });
-  } else {
-    subSales.forEach(s => {
-      const bd = calcSubYearlyBreakdown(s);
-      Object.values(bd).forEach(v => subIncome += v);
-    });
-  }
+  let subMens = 0, subLadies = 0;
+  subSales.forEach(s => {
+    const bd = calcSubYearlyBreakdown(s);
+    let amt = year
+      ? (bd[Number(year)] || 0)
+      : Object.values(bd).reduce((a, v) => a + v, 0);
+    if (s.category === 'メンズ') subMens += amt;
+    else subLadies += amt;
+  });
+  const subIncome = subMens + subLadies;
+
+  // 本体売上＋サブスク入金を合算
+  const mensSalesAmt  = total(mens)   + subMens;
+  const ladiesSalesAmt = total(ladies) + subLadies;
+  const totalSales = mensSalesAmt + ladiesSalesAmt;
+  const totalCostAmt = totalCost(filtered);
+  const profit2 = totalSales - totalCostAmt;
+  const rate2 = totalSales > 0 ? ((profit2 / totalSales) * 100).toFixed(1) : '0.0';
 
   const kpis = [
-    { label: 'メンズ売上', val: yen(total(mens)), sub: `${mens.length}件` },
-    { label: 'レディース売上', val: yen(total(ladies)), sub: `${ladies.length}件` },
-    { label: '合計売上', val: yen(allSales), sub: `${filtered.length}件` },
-    { label: `サブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
-    { label: '仕入れ合計', val: yen(allCost) },
-    { label: '利益', val: yen(profit) },
-    { label: '利益率', val: rate + '%' },
+    { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `本体${yen(total(mens))} + サブスク${yen(subMens)}` },
+    { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `本体${yen(total(ladies))} + サブスク${yen(subLadies)}` },
+    { label: '合計売上', val: yen(totalSales), sub: `${filtered.length}件` },
+    { label: `うちサブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
+    { label: '仕入れ合計', val: yen(totalCostAmt) },
+    { label: '利益', val: yen(profit2) },
+    { label: '利益率', val: rate2 + '%' },
     { label: '販売個数', val: `${filtered.length}個`, sub: `♂${mens.length} ♀${ladies.length}` }
   ];
 
