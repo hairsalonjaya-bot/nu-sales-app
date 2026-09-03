@@ -524,12 +524,17 @@ function renderKPI() {
   const profit = allSales - allCost;
   const rate = allSales > 0 ? ((profit / allSales) * 100).toFixed(1) : '0.0';
 
-  // サブスク入金：カテゴリ別・年別に集計
-  const subSales = sales.filter(s => s.subPrice > 0 && s.subStart);
+  // 一括購入のみ販売年で集計
+  const ikkatsu = filtered.filter(s => (s.purchaseType || '一括') === '一括');
+  const ikkatsuMens   = ikkatsu.filter(s => s.category === 'メンズ');
+  const ikkatsuLadies = ikkatsu.filter(s => s.category === 'レディース');
+
+  // サブスク購入は月割り入金額で年別集計（商品価格は使わない）
+  const subSales = sales.filter(s => s.purchaseType === 'サブスク' && s.subStart);
   let subMens = 0, subLadies = 0;
   subSales.forEach(s => {
     const bd = calcSubYearlyBreakdown(s);
-    let amt = year
+    const amt = year
       ? (bd[Number(year)] || 0)
       : Object.values(bd).reduce((a, v) => a + v, 0);
     if (s.category === 'メンズ') subMens += amt;
@@ -537,17 +542,18 @@ function renderKPI() {
   });
   const subIncome = subMens + subLadies;
 
-  // 本体売上＋サブスク入金を合算
-  const mensSalesAmt  = total(mens)   + subMens;
-  const ladiesSalesAmt = total(ladies) + subLadies;
+  const salesOf = arr => arr.reduce((a, x) => a + x.price + (x.optionPrice||0) - (x.discount||0), 0);
+  const mensSalesAmt   = salesOf(ikkatsuMens)   + subMens;
+  const ladiesSalesAmt = salesOf(ikkatsuLadies) + subLadies;
   const totalSales = mensSalesAmt + ladiesSalesAmt;
+  // 仕入れは販売年のもの（サブスクも含む、販売日で判断）
   const totalCostAmt = totalCost(filtered);
   const profit2 = totalSales - totalCostAmt;
   const rate2 = totalSales > 0 ? ((profit2 / totalSales) * 100).toFixed(1) : '0.0';
 
   const kpis = [
-    { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `本体${yen(total(mens))} + サブスク${yen(subMens)}` },
-    { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `本体${yen(total(ladies))} + サブスク${yen(subLadies)}` },
+    { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `${ikkatsuMens.length}件` },
+    { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `${ikkatsuLadies.length}件` },
     { label: '合計売上', val: yen(totalSales), sub: `${filtered.length}件` },
     { label: `うちサブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
     { label: '仕入れ合計', val: yen(totalCostAmt) },
