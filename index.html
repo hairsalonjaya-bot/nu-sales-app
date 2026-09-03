@@ -524,13 +524,14 @@ function renderKPI() {
   const profit = allSales - allCost;
   const rate = allSales > 0 ? ((profit / allSales) * 100).toFixed(1) : '0.0';
 
-  // 一括購入のみ販売年で集計
-  const ikkatsu = filtered.filter(s => (s.purchaseType || '一括') === '一括');
+  // サブスク契約あり＝subPrice+subStart両方ある → 月割り計算
+  // それ以外（一括）→ 販売年に全額計上
+  const isSub = s => s.subPrice > 0 && s.subStart;
+  const ikkatsu = filtered.filter(s => !isSub(s));
   const ikkatsuMens   = ikkatsu.filter(s => s.category === 'メンズ');
   const ikkatsuLadies = ikkatsu.filter(s => s.category === 'レディース');
 
-  // サブスク購入は月割り入金額で年別集計（商品価格は使わない）
-  const subSales = sales.filter(s => s.purchaseType === 'サブスク' && s.subStart);
+  const subSales = sales.filter(s => isSub(s));
   let subMens = 0, subLadies = 0;
   subSales.forEach(s => {
     const bd = calcSubYearlyBreakdown(s);
@@ -552,8 +553,8 @@ function renderKPI() {
   const rate2 = totalSales > 0 ? ((profit2 / totalSales) * 100).toFixed(1) : '0.0';
 
   const kpis = [
-    { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `${ikkatsuMens.length}件` },
-    { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `${ikkatsuLadies.length}件` },
+    { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `${mens.length}件` },
+    { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `${ladies.length}件` },
     { label: '合計売上', val: yen(totalSales), sub: `${filtered.length}件` },
     { label: `うちサブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
     { label: '仕入れ合計', val: yen(totalCostAmt) },
