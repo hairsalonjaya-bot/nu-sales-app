@@ -526,7 +526,7 @@ function renderKPI() {
 
   // サブスク契約あり＝subPrice+subStart両方ある → 月割り計算
   // それ以外（一括）→ 販売年に全額計上
-  const isSub = s => s.subPrice > 0 && s.subStart;
+  const isSub = s => s.purchaseType === 'サブスク' && s.subPrice > 0 && s.subStart;
   const ikkatsu = filtered.filter(s => !isSub(s));
   const ikkatsuMens   = ikkatsu.filter(s => s.category === 'メンズ');
   const ikkatsuLadies = ikkatsu.filter(s => s.category === 'レディース');
