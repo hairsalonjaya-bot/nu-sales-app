@@ -552,11 +552,14 @@ function renderKPI() {
   const profit2 = totalSales - totalCostAmt;
   const rate2 = totalSales > 0 ? ((profit2 / totalSales) * 100).toFixed(1) : '0.0';
 
+  const totalDiscountAmt = filtered.reduce((a, x) => a + (x.discount || 0), 0);
+
   const kpis = [
     { label: 'メンズ売上', val: yen(mensSalesAmt), sub: `${mens.length}件` },
     { label: 'レディース売上', val: yen(ladiesSalesAmt), sub: `${ladies.length}件` },
     { label: '合計売上', val: yen(totalSales), sub: `${filtered.length}件` },
     { label: `うちサブスク入金${year ? year+'年' : '累計'}`, val: yen(subIncome), color: 'var(--green)' },
+    { label: '値引き合計', val: yen(totalDiscountAmt), color: 'var(--orange)' },
     { label: '仕入れ合計', val: yen(totalCostAmt) },
     { label: '利益', val: yen(profit2) },
     { label: '利益率', val: rate2 + '%' },
